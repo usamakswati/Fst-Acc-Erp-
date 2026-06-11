@@ -275,7 +275,7 @@ export default function App() {
       onLogout={handleLogout}
     >
       {currentTab === 'dashboard' && <Dashboard setCurrentTab={setCurrentTab} currency={currencySign} />}
-      {currentTab === 'coa' && <ChartOfAccounts />}
+      {currentTab === 'coa' && <ChartOfAccounts setCurrentTab={setCurrentTab} />}
       {currentTab === 'journals' && <JournalVouchers />}
       {currentTab === 'sales-invoices' && <Invoices currency={currencySign} taxRate={tenant?.taxRate || 18} tenant={tenant} />}
       {currentTab === 'sales-pos' && <POSInvoices currency={currencySign} />}

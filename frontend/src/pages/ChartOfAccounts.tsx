@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { Network, Plus, FolderTree } from 'lucide-react';
+import { Network, Plus, FolderTree, ArrowRight } from 'lucide-react';
 
-export default function ChartOfAccounts() {
+interface ChartOfAccountsProps {
+  setCurrentTab?: (tab: string) => void;
+}
+
+export default function ChartOfAccounts({ setCurrentTab }: ChartOfAccountsProps) {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,6 +24,68 @@ export default function ChartOfAccounts() {
     }
     loadAccounts();
   }, []);
+
+  const handleAccountClick = (acc: any) => {
+    if (!setCurrentTab) return;
+
+    // Redirect mapping based on code / type
+    switch (acc.code) {
+      case '10100': // Cash in Hand
+        setCurrentTab('sales-receipts');
+        break;
+      case '10200': // Bank Current Account
+        setCurrentTab('bank-reconciliation');
+        break;
+      case '12100': // Accounts Receivable (AR)
+        setCurrentTab('sales-invoices');
+        break;
+      case '13100': // Inventory (Stock Asset)
+        setCurrentTab('inventory-products');
+        break;
+      case '20100': // Accounts Payable (AP)
+        setCurrentTab('purchases-bills');
+        break;
+      case '21100': // Tax Payable (GST/VAT)
+        setCurrentTab('settings');
+        break;
+      case '30100': // Share Capital
+      case '30200': // Retained Earnings
+        setCurrentTab('trialbalance');
+        break;
+      case '40100': // Sales Revenue
+        setCurrentTab('sales-invoices');
+        break;
+      case '50100': // Cost of Goods Sold (COGS)
+      case '50200': // Direct Labor Expense
+      case '50300': // Manufacturing Overheads
+        setCurrentTab('manufacturing');
+        break;
+      case '50400': // General & Administrative Expense
+        setCurrentTab('journals');
+        break;
+      default:
+        // Fallback by type
+        switch (acc.type) {
+          case 'ASSET':
+            setCurrentTab('bank-reconciliation');
+            break;
+          case 'LIABILITY':
+            setCurrentTab('purchases-bills');
+            break;
+          case 'EQUITY':
+            setCurrentTab('trialbalance');
+            break;
+          case 'REVENUE':
+            setCurrentTab('sales-invoices');
+            break;
+          case 'EXPENSE':
+            setCurrentTab('journals');
+            break;
+          default:
+            setCurrentTab('dashboard');
+        }
+    }
+  };
 
   const accountTypes = [
     { type: 'ASSET', title: 'Assets', description: 'What you own (Cash, Inventory, Receivables)', color: 'border-l-4 border-indigo-500' },
@@ -64,19 +130,29 @@ export default function ChartOfAccounts() {
                   catAccounts.map((acc) => (
                     <div 
                       key={acc.id} 
-                      className="p-2.5 bg-brand-900/10 hover:bg-brand-900/30 border border-brand-800/30 hover:border-brand-700/40 rounded-lg flex justify-between items-center transition-all"
+                      onClick={() => handleAccountClick(acc)}
+                      className={`p-2.5 bg-brand-900/10 border border-brand-800/30 rounded-lg flex justify-between items-center transition-all ${
+                        setCurrentTab 
+                          ? 'hover:bg-brand-900/35 hover:border-brand-700/50 cursor-pointer group active:scale-[0.98]' 
+                          : ''
+                      }`}
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs font-mono font-bold text-indigo-400 select-all">
+                        <span className="text-xs font-mono font-bold text-indigo-400 select-all group-hover:text-indigo-300 transition-colors">
                           {acc.code}
                         </span>
-                        <h4 className="text-xs font-semibold text-slate-200 truncate" title={acc.name}>
+                        <h4 className="text-xs font-semibold text-slate-200 truncate group-hover:text-white transition-colors" title={acc.name}>
                           {acc.name}
                         </h4>
                       </div>
-                      <span className="text-[9px] uppercase bg-slate-800 text-slate-400 font-semibold px-1 rounded">
-                        {acc.type.substring(0, 3)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] uppercase bg-slate-800 text-slate-400 font-semibold px-1.5 py-0.5 rounded group-hover:bg-slate-700 group-hover:text-slate-300 transition-colors">
+                          {acc.type.substring(0, 3)}
+                        </span>
+                        {setCurrentTab && (
+                          <ArrowRight size={12} className="text-slate-400 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
+                        )}
+                      </div>
                     </div>
                   ))
                 ) : (
