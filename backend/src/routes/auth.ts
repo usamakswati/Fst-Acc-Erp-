@@ -165,4 +165,34 @@ router.get('/me', authenticateJWT, async (req: AuthenticatedRequest, res) => {
   }
 });
 
+// PUT /api/auth/tenant
+router.put('/tenant', authenticateJWT, async (req: AuthenticatedRequest, res) => {
+  if (!req.user || !req.tenantId) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  const { name, currency, taxRate } = req.body;
+
+  if (!name) {
+    return res.status(400).json({ error: 'Company name is required' });
+  }
+
+  try {
+    const updatedTenant = await prisma.tenant.update({
+      where: { id: req.tenantId },
+      data: {
+        name,
+        currency: currency || 'USD',
+        taxRate: parseFloat(taxRate) !== undefined ? parseFloat(taxRate) : 0.0,
+      },
+    });
+
+    res.json(updatedTenant);
+  } catch (error) {
+    console.error('Tenant update error:', error);
+    res.status(500).json({ error: 'Error updating company settings' });
+  }
+});
+
 export default router;
+

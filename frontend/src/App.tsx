@@ -18,6 +18,7 @@ import AnalyticalReports from './pages/AnalyticalReports';
 import Manufacturing from './pages/Manufacturing';
 import TrialBalance from './pages/TrialBalance';
 import Reports from './pages/Reports';
+import ReportsHub from './pages/ReportsHub';
 import Bills from './pages/Bills';
 import Payments from './pages/Payments';
 import PostDatedChequesIssued from './pages/PostDatedChequesIssued';
@@ -25,6 +26,7 @@ import PurchasesAll from './pages/PurchasesAll';
 import PurchaseOrders from './pages/PurchaseOrders';
 import Suppliers from './pages/Suppliers';
 import BankReconciliation from './pages/BankReconciliation';
+import Settings from './pages/Settings';
 import { ShieldCheck, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function App() {
@@ -275,7 +277,7 @@ export default function App() {
       {currentTab === 'dashboard' && <Dashboard setCurrentTab={setCurrentTab} currency={currencySign} />}
       {currentTab === 'coa' && <ChartOfAccounts />}
       {currentTab === 'journals' && <JournalVouchers />}
-      {currentTab === 'sales-invoices' && <Invoices currency={currencySign} taxRate={tenant?.taxRate || 18} />}
+      {currentTab === 'sales-invoices' && <Invoices currency={currencySign} taxRate={tenant?.taxRate || 18} tenant={tenant} />}
       {currentTab === 'sales-pos' && <POSInvoices currency={currencySign} />}
       {currentTab === 'sales-receipts' && <Receipts currency={currencySign} />}
       {currentTab === 'sales-pdc' && <PostDatedCheques currency={currencySign} />}
@@ -296,7 +298,9 @@ export default function App() {
       {currentTab === 'bank-reconciliation' && <BankReconciliation currency={currencySign} />}
       {currentTab === 'trialbalance' && <TrialBalance />}
       {currentTab === 'reports' && <Reports currency={currencySign} />}
+      {currentTab === 'reports-hub' && <ReportsHub currency={currencySign} />}
       {currentTab === 'analytical-reports' && <AnalyticalReports currency={currencySign} />}
+      {currentTab === 'settings' && <Settings tenant={tenant} setTenant={setTenant} currency={currencySign} />}
     </Layout>
   );
 }

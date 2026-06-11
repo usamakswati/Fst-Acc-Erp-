@@ -48,6 +48,15 @@ export const api = {
     return handleResponse(res);
   },
 
+  async updateTenant(tenantData: { name: string; currency: string; taxRate: number }) {
+    const res = await fetch(`/api/auth/tenant`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(tenantData),
+    });
+    return handleResponse(res);
+  },
+
   logout() {
     localStorage.removeItem('erp_token');
   },
@@ -559,4 +568,23 @@ export const api = {
     });
     return handleResponse(res);
   },
+
+  // BI Reporting Module Endpoints
+  reports: {
+    async getReportData(endpoint: string, params?: Record<string, string>) {
+      const qs = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([key, val]) => {
+          if (val !== undefined && val !== null && val !== '') {
+            qs.set(key, val);
+          }
+        });
+      }
+      const queryString = qs.toString() ? `?${qs.toString()}` : '';
+      const res = await fetch(`/api/reports/${endpoint}${queryString}`, {
+        headers: getHeaders(),
+      });
+      return handleResponse(res);
+    }
+  }
 };

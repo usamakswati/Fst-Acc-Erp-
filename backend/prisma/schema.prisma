@@ -135,6 +135,10 @@ model StockTransaction {
   referenceType String    // INVOICE, BILL, ASSEMBLY_CONSUMPTION, ASSEMBLY_OUTPUT, INITIAL_STOCK
   referenceId   String?
   warehouse     String    @default("Main Warehouse")
+  batchNumber   String?
+  mfgDate       DateTime?
+  expiryDate    DateTime?
+  landedCostAllocation Float @default(0.0)
   createdAt     DateTime  @default(now())
 }
 
@@ -162,6 +166,8 @@ model JournalLine {
   debit          Float        @default(0.0)
   credit         Float        @default(0.0)
   narration      String?
+  projectCode    String?
+  costCenter     String?
 }
 
 model Invoice {
@@ -204,6 +210,7 @@ model InvoiceLine {
   discountPercent Float    @default(0.0)
   taxPercent      Float    @default(0.0)
   taxAmount       Float    @default(0.0)
+  whtAmount       Float    @default(0.0)
   lineTotal       Float    @default(0.0)
 }
 
@@ -241,6 +248,7 @@ model BillLine {
   discountPercent Float    @default(0.0)
   taxPercent      Float    @default(0.0)
   taxAmount       Float    @default(0.0)
+  whtAmount       Float    @default(0.0)
   lineTotal       Float    @default(0.0)
 }
 

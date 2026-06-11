@@ -19,7 +19,9 @@ import {
   DollarSign,
   ChevronDown,
   Banknote,
-  Boxes
+  Boxes,
+  Settings,
+  BarChart3
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -81,6 +83,8 @@ export default function Layout({
     { id: 'trialbalance', name: 'Trial Balance', icon: Scale },
     { id: 'reports', name: 'Reports', icon: FileSpreadsheet },
     { id: 'analytical-reports', name: 'Analytical Reports', icon: FileText },
+    { id: 'reports-hub', name: 'BI Reports Hub', icon: BarChart3 },
+    { id: 'settings', name: 'Settings', icon: Settings },
   ];
 
   return (

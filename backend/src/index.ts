@@ -23,6 +23,7 @@ import purchaseOrdersRouter from './routes/purchaseOrders';
 import paymentsRouter from './routes/payments';
 import vendorChequesRouter from './routes/vendorCheques';
 import suppliersRouter from './routes/suppliers';
+import reportsRouter from './routes/reports';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -54,6 +55,7 @@ app.use('/api/purchase-orders', purchaseOrdersRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/vendor-cheques', vendorChequesRouter);
 app.use('/api/suppliers', suppliersRouter);
+app.use('/api/reports', reportsRouter);
 
 // Basic health check route
 app.get('/health', (req: Request, res: Response) => {

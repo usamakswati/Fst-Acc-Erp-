@@ -19,10 +19,33 @@ import {
 interface InvoicesProps {
   currency: string;
   taxRate: number;
+  tenant?: any;
 }
 
-export default function Invoices({ currency, taxRate }: InvoicesProps) {
+export default function Invoices({ currency, taxRate, tenant }: InvoicesProps) {
   const [invoices, setInvoices] = useState<any[]>([]);
+  
+  // Load custom template options from localStorage
+  const localKey = tenant ? `fastaccounts_settings_${tenant.id}` : '';
+  let customSettings: any = {};
+  if (localKey) {
+    try {
+      customSettings = JSON.parse(localStorage.getItem(localKey) || '{}');
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  const templateStyle = customSettings.templateStyle || 'classic';
+  const primaryColor = customSettings.primaryColor || '#4f46e5';
+  const accentColor = customSettings.accentColor || '#10b981';
+  const logoText = customSettings.logoText || tenant?.name || 'Acme Enterprise Corp';
+  const termsAndConditions = customSettings.termsAndConditions || 'Payment is due within 30 days of invoice issue date.';
+  const footerNote = customSettings.footerNote || 'Thank you for choosing us! We appreciate your business.';
+  const companyNtn = customSettings.ntn || '7239102-4';
+  const companyStrn = customSettings.strn || '1234567890123';
+  const companyPhone = customSettings.phone || '+92 21 34567890';
+  const companyAddress = customSettings.address || 'Industrial Area, Karachi, Pakistan';
   const [contacts, setContacts] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   
@@ -445,28 +468,88 @@ export default function Invoices({ currency, taxRate }: InvoicesProps) {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left side: details block */}
             <div className="lg:col-span-2 space-y-6">
-              <div id="printable-fbr-invoice" className="glass-panel p-6 space-y-6 bg-slate-900 border border-brand-850">
+              <div id="printable-fbr-invoice" className="glass-panel p-6 space-y-6 bg-slate-900 border border-brand-850 print:bg-white print:text-slate-900 print:shadow-none print:border-none print:p-0">
                 {/* Print Only Official FBR Header */}
                 {selectedInvoice.fbrStatus === 'SUBMITTED' && (
-                  <div className="hidden print:flex flex-col items-center border-b-2 border-dashed border-slate-300 pb-4 mb-4 text-center">
+                  <div className="hidden print:flex flex-col items-center border-b-2 border-dashed border-slate-300 pb-4 mb-4 text-center animate-none">
                     <h2 className="text-xl font-extrabold text-slate-900">PAKISTAN FEDERAL BOARD OF REVENUE</h2>
                     <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">Official Computer Registered Tax Invoice</p>
                     <p className="text-[10px] text-slate-500 mt-1">POS REGISTRATION NUMBER: POS-ACME-KHI-01</p>
                   </div>
                 )}
 
-                {/* Header metadata */}
-                <div className="flex justify-between items-start border-b border-brand-850 pb-6">
+                {/* 1. Sellers Custom Header Style */}
+                {templateStyle === 'classic' && (
+                  <div className="border-b-4 border-double border-brand-800 pb-5 flex justify-between items-start print:border-slate-800">
+                    <div>
+                      <h4 className="text-2xl font-black tracking-tight" style={{ color: primaryColor }}>{logoText}</h4>
+                      <p className="text-xs text-slate-400 mt-1 print:text-slate-600">{companyAddress}</p>
+                      {companyPhone && <p className="text-xs text-slate-500 mt-0.5 print:text-slate-600">Phone: {companyPhone}</p>}
+                    </div>
+                    <div className="text-right">
+                      <h3 className="text-lg font-black text-slate-200 tracking-wider print:text-slate-800">SALES TAX INVOICE</h3>
+                      <p className="font-mono text-slate-400 text-xs mt-1 print:text-slate-600">NTN: {companyNtn}</p>
+                      <p className="font-mono text-slate-400 text-xs mt-0.5 print:text-slate-600">STRN: {companyStrn}</p>
+                    </div>
+                  </div>
+                )}
+
+                {templateStyle === 'indigo' && (
+                  <div className="p-5 rounded-xl flex justify-between items-center text-white" style={{ backgroundColor: primaryColor }}>
+                    <div>
+                      <h4 className="text-lg font-extrabold tracking-tight">{logoText}</h4>
+                      <p className="text-xs opacity-80 mt-1">{companyAddress}</p>
+                      {companyPhone && <p className="text-xs opacity-75 mt-0.5">Phone: {companyPhone}</p>}
+                    </div>
+                    <div className="text-right">
+                      <h3 className="text-sm font-black tracking-widest uppercase">E-TAX INVOICE</h3>
+                      <p className="font-mono text-xs opacity-80 mt-1">NTN: {companyNtn}</p>
+                      <p className="font-mono text-xs opacity-80">STRN: {companyStrn}</p>
+                    </div>
+                  </div>
+                )}
+
+                {templateStyle === 'emerald' && (
+                  <div className="border-l-4 pl-4 py-2 flex justify-between items-start" style={{ borderColor: primaryColor }}>
+                    <div>
+                      <h4 className="text-lg font-extrabold tracking-tight" style={{ color: primaryColor }}>{logoText}</h4>
+                      <p className="text-xs text-slate-400 mt-1 print:text-slate-600">{companyAddress}</p>
+                      {companyPhone && <p className="text-xs text-slate-500 mt-0.5 print:text-slate-600">Phone: {companyPhone}</p>}
+                    </div>
+                    <div className="text-right">
+                      <h3 className="text-base font-bold uppercase" style={{ color: accentColor }}>Tax Invoice (FBR Verified)</h3>
+                      <p className="font-mono text-xs text-slate-400 mt-1 print:text-slate-600">NTN: {companyNtn} | STRN: {companyStrn}</p>
+                    </div>
+                  </div>
+                )}
+
+                {templateStyle === 'minimalist' && (
+                  <div className="flex justify-between items-start border-b border-brand-850 pb-5 print:border-slate-200">
+                    <div>
+                      <h4 className="text-lg font-bold tracking-tight text-slate-200 print:text-slate-800">{logoText}</h4>
+                      <p className="text-xs text-slate-400 mt-1 print:text-slate-600">{companyAddress}</p>
+                      {companyPhone && <p className="text-xs text-slate-500 mt-0.5 print:text-slate-600">Phone: {companyPhone}</p>}
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-bold text-slate-400 block print:text-slate-600">INVOICE</span>
+                      <span className="font-mono text-xs text-slate-455 block mt-1 print:text-slate-600">NTN: {companyNtn}</span>
+                      <span className="font-mono text-xs text-slate-455 block print:text-slate-600">STRN: {companyStrn}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Header metadata (Issue & Due date, Invoice Num) */}
+                <div className="flex justify-between items-start border-b border-brand-850 pb-6 print:border-slate-200 pt-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h4 className="text-2xl font-bold text-indigo-400">{selectedInvoice.invoiceNumber}</h4>
+                      <h4 className="text-2xl font-bold text-indigo-400 print:text-blue-900">{selectedInvoice.invoiceNumber}</h4>
                       {selectedInvoice.fbrStatus === 'SUBMITTED' && (
                         <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide print:hidden">
                           🇵🇰 FBR Integrated
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-455 mt-1">Status: 
+                    <p className="text-xs text-slate-455 mt-1 print:text-slate-600">Status: 
                       <span className={`ml-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                         selectedInvoice.status === 'APPROVED' 
                           ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
@@ -476,42 +559,43 @@ export default function Invoices({ currency, taxRate }: InvoicesProps) {
                       </span>
                     </p>
                   </div>
-                  <div className="text-right text-sm space-y-1 text-slate-400">
+                  <div className="text-right text-xs space-y-1 text-slate-400 print:text-slate-600">
                     <p>Issue Date: <strong>{new Date(selectedInvoice.date).toLocaleDateString()}</strong></p>
                     <p>Due Date: <strong>{new Date(selectedInvoice.dueDate).toLocaleDateString()}</strong></p>
                   </div>
                 </div>
 
                 {/* Seller & Buyer Details */}
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 gap-6 pt-2 text-slate-350 print:text-slate-700">
                   <div>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Seller (Billed From)</span>
-                    <h5 className="text-sm font-bold text-slate-200 mt-1">Acme Enterprise Corp</h5>
-                    <p className="text-xs text-slate-400">Industrial Area, Karachi, Pakistan</p>
-                    <p className="text-xs text-slate-455 mt-1">NTN: <strong className="font-mono text-indigo-300">7239102-4</strong></p>
-                    <p className="text-xs text-slate-455 mt-0.5">STRN: <strong className="font-mono text-emerald-300">1234567890123</strong></p>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide print:text-slate-400">Seller (Billed From)</span>
+                    <h5 className="text-sm font-bold text-slate-200 mt-1 print:text-slate-800">{logoText}</h5>
+                    <p className="text-xs text-slate-400 print:text-slate-600">{companyAddress}</p>
+                    {companyPhone && <p className="text-xs text-slate-400 print:text-slate-600">Phone: {companyPhone}</p>}
+                    <p className="text-xs text-slate-455 mt-1 print:text-slate-600">NTN: <strong className="font-mono text-indigo-300 print:text-blue-900">{companyNtn}</strong></p>
+                    <p className="text-xs text-slate-455 mt-0.5 print:text-slate-600">STRN: <strong className="font-mono text-emerald-300 print:text-emerald-900">{companyStrn}</strong></p>
                   </div>
 
                   <div>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Billed To</span>
-                    <h5 className="text-sm font-bold text-slate-200 mt-1">{selectedInvoice.contact.name}</h5>
-                    <p className="text-xs text-slate-400">{selectedInvoice.contact.address || 'No billing address specified'}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{selectedInvoice.contact.phone}</p>
-                    <p className="text-xs text-indigo-300 mt-0.5">{selectedInvoice.contact.email}</p>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide print:text-slate-400">Billed To</span>
+                    <h5 className="text-sm font-bold text-slate-200 mt-1 print:text-slate-800">{selectedInvoice.contact.name}</h5>
+                    <p className="text-xs text-slate-400 print:text-slate-600">{selectedInvoice.contact.address || 'No billing address specified'}</p>
+                    <p className="text-xs text-slate-400 print:text-slate-600">{selectedInvoice.contact.phone}</p>
+                    <p className="text-xs text-indigo-300 print:text-blue-900 mt-0.5">{selectedInvoice.contact.email}</p>
                     {selectedInvoice.contact.ntn && (
-                      <p className="text-xs text-slate-455 mt-1">NTN: <strong className="font-mono text-indigo-300">{selectedInvoice.contact.ntn}</strong></p>
+                      <p className="text-xs text-slate-455 mt-1 print:text-slate-600">NTN: <strong className="font-mono text-indigo-300 print:text-blue-900">{selectedInvoice.contact.ntn}</strong></p>
                     )}
                     {selectedInvoice.contact.strn && (
-                      <p className="text-xs text-slate-455 mt-0.5">STRN: <strong className="font-mono text-emerald-300">{selectedInvoice.contact.strn}</strong></p>
+                      <p className="text-xs text-slate-455 mt-0.5 print:text-slate-600">STRN: <strong className="font-mono text-emerald-300 print:text-emerald-900">{selectedInvoice.contact.strn}</strong></p>
                     )}
                   </div>
                 </div>
 
                 {/* Invoice Lines Table */}
-                <div className="border border-brand-850 rounded-lg overflow-hidden">
-                  <table className="w-full text-sm text-left border-collapse">
+                <div className="border border-brand-850 rounded-lg overflow-hidden print:border-slate-200">
+                  <table className="w-full text-xs text-left border-collapse">
                     <thead>
-                      <tr className="bg-brand-950/60 text-slate-300 border-b border-brand-800">
+                      <tr className="bg-brand-950/60 text-slate-300 border-b border-brand-800 print:bg-slate-50 print:text-slate-800 print:border-slate-200 font-semibold">
                         <th className="px-3 py-2 font-medium">SKU / Item Details</th>
                         <th className="px-3 py-2 font-medium w-16 text-right">Qty</th>
                         <th className="px-3 py-2 font-medium w-24 text-right">Price</th>
@@ -522,21 +606,21 @@ export default function Invoices({ currency, taxRate }: InvoicesProps) {
                     </thead>
                     <tbody>
                       {selectedInvoice.lines.map((line: any) => (
-                        <tr key={line.id} className="border-b border-brand-900/20 hover:bg-brand-900/5">
-                          <td className="px-3 py-3">
-                            <span className="font-mono font-bold text-indigo-400 mr-2">[{line.product.sku}]</span>
-                            <span className="text-slate-200">{line.product.name}</span>
+                        <tr key={line.id} className="border-b border-brand-900/20 hover:bg-brand-900/5 print:border-slate-100 print:hover:bg-transparent">
+                          <td className="px-3 py-3 text-slate-300 print:text-slate-800">
+                            <span className="font-mono font-bold text-indigo-450 mr-2 print:text-blue-900">[{line.product.sku}]</span>
+                            <span className="font-medium">{line.product.name}</span>
                             {line.product.hsCode && (
-                              <span className="text-[10px] text-slate-500 block font-mono">HS Code: {line.product.hsCode}</span>
+                              <span className="text-[10px] text-slate-550 block font-mono print:text-slate-500">HS Code: {line.product.hsCode}</span>
                             )}
                           </td>
-                          <td className="px-3 py-3 text-right font-mono text-slate-300">{line.quantity}</td>
-                          <td className="px-3 py-3 text-right font-mono text-slate-300">{currency} {line.unitPrice.toFixed(2)}</td>
-                          <td className="px-3 py-3 text-right font-mono text-rose-400">
+                          <td className="px-3 py-3 text-right font-mono text-slate-400 print:text-slate-600">{line.quantity}</td>
+                          <td className="px-3 py-3 text-right font-mono text-slate-400 print:text-slate-600">{currency} {line.unitPrice.toFixed(2)}</td>
+                          <td className="px-3 py-3 text-right font-mono text-rose-455 print:text-red-700">
                             {line.discountPercent > 0 ? `${line.discountPercent}%` : '-'}
                           </td>
-                          <td className="px-3 py-3 text-right font-mono text-slate-400">{line.taxPercent}%</td>
-                          <td className="px-3 py-3 text-right font-mono font-semibold text-slate-200">
+                          <td className="px-3 py-3 text-right font-mono text-slate-500 print:text-slate-600">{line.taxPercent}%</td>
+                          <td className="px-3 py-3 text-right font-mono font-semibold text-slate-200 print:text-slate-900">
                             {currency} {line.lineTotal.toFixed(2)}
                           </td>
                         </tr>
@@ -546,45 +630,51 @@ export default function Invoices({ currency, taxRate }: InvoicesProps) {
                 </div>
 
                 {/* Calculations Summaries */}
-                <div className="flex justify-between items-start border-t border-brand-850 pt-6">
+                <div className="flex justify-between items-start border-t border-brand-850 pt-6 print:border-slate-200">
                   {/* Left element: e-Invoice info for print layout */}
-                  <div className="text-[10px] text-slate-500 max-w-xs space-y-1">
-                    <p className="font-bold text-slate-400 uppercase tracking-wide print:text-slate-800">E-Invoice Notes</p>
-                    <p className="leading-relaxed">This computer-generated document represents a verified electronic tax invoice integrated directly with the FBR sandbox portal system under standard rules (18.00% GST).</p>
+                  <div className="text-[10px] text-slate-500 max-w-xs space-y-1 print:text-slate-500">
+                    <p className="font-bold text-slate-400 uppercase tracking-wide print:text-slate-700">E-Invoice Notes</p>
+                    <p className="leading-relaxed">This computer-generated document represents a verified electronic tax invoice integrated directly with the FBR sandbox portal system under standard rules ({taxRate}% GST).</p>
                   </div>
                   
-                  <div className="w-80 space-y-2 text-sm">
-                    <div className="flex justify-between text-slate-400">
+                  <div className="w-80 space-y-2 text-xs text-slate-400 print:text-slate-700">
+                    <div className="flex justify-between">
                       <span>Subtotal:</span>
-                      <span className="font-mono">{currency} {selectedInvoice.subTotal.toFixed(2)}</span>
+                      <span className="font-mono text-slate-300 print:text-slate-800">{currency} {selectedInvoice.subTotal.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-rose-455">
+                    <div className="flex justify-between text-rose-455 print:text-red-700">
                       <span>Discount Total:</span>
                       <span className="font-mono">- {currency} {selectedInvoice.discountTotal.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-slate-400">
-                      <span>Tax (18% GST Collected):</span>
-                      <span className="font-mono">{currency} {selectedInvoice.taxTotal.toFixed(2)}</span>
+                    <div className="flex justify-between">
+                      <span>Tax ({taxRate}% GST Collected):</span>
+                      <span className="font-mono text-slate-300 print:text-slate-800">{currency} {selectedInvoice.taxTotal.toFixed(2)}</span>
                     </div>
-                    <div className="w-full h-px bg-brand-800/60 my-2 border-t border-slate-300 print:border-slate-400" />
-                    <div className="flex justify-between font-bold text-slate-100 text-base">
+                    <div className="w-full h-px bg-brand-800/60 my-2 border-t border-slate-355 print:border-slate-300" />
+                    <div className="flex justify-between font-bold text-slate-100 text-sm print:text-slate-950">
                       <span>Grand Total:</span>
-                      <span className="font-mono">{currency} {selectedInvoice.grandTotal.toFixed(2)}</span>
+                      <span className="font-mono" style={{ color: primaryColor }}>{currency} {selectedInvoice.grandTotal.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
 
+                {/* Terms and conditions / Footer Note */}
+                <div className="border-t border-dashed border-brand-800 pt-4 text-center print:border-slate-300">
+                  <p className="text-xs text-slate-300 font-bold print:text-slate-800" style={{ color: primaryColor }}>{termsAndConditions}</p>
+                  <p className="text-[10px] text-slate-455 mt-1 italic print:text-slate-500">{footerNote}</p>
+                </div>
+
                 {/* Print Only FBR Footer & Verification QR */}
                 {selectedInvoice.fbrStatus === 'SUBMITTED' && (
-                  <div className="hidden print:flex flex-col items-center border-t-2 border-dashed border-slate-300 pt-4 mt-6 text-center text-xs text-slate-500">
+                  <div className="hidden print:flex flex-col items-center border-t border-dashed border-slate-300 pt-4 mt-6 text-center text-[10px] text-slate-500 animate-none">
                     <img 
                       src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(selectedInvoice.fbrQrCode)}`} 
                       alt="FBR Tax Verification QR"
-                      className="w-24 h-24 mb-2"
+                      className="w-20 h-20 mb-2"
                     />
                     <p className="font-bold text-slate-800">FBR INVOICE ID: {selectedInvoice.fbrInvoiceId}</p>
                     <p className="mt-1 font-semibold text-slate-600">Scan this QR Code using FBR Tax Asaan Mobile App for validation.</p>
-                    <p className="text-[9px] text-slate-400 mt-2 font-mono">POWERED BY ACME ENTERPRISE FASTACCOUNTS POS CONNECTOR</p>
+                    <p className="text-[8px] text-slate-400 mt-2 font-mono">POWERED BY ACME ENTERPRISE FASTACCOUNTS POS CONNECTOR</p>
                   </div>
                 )}
               </div>
