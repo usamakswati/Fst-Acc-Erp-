@@ -139,7 +139,7 @@ export default function App() {
               <ShieldCheck size={28} />
             </div>
             <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-indigo-400 to-emerald-400 bg-clip-text text-transparent">
-              FastAccounts ERP
+              UAN Accounts ERP
             </h2>
             <p className="text-xs text-slate-400 font-medium">Double-entry accounting, FIFO/Average costing engine, and RBAC security.</p>
           </div>

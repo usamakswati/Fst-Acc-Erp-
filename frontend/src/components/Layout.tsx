@@ -104,14 +104,14 @@ export default function Layout({
           {!collapsed ? (
             <div className="flex items-center gap-2 overflow-hidden">
               <span className="text-xl font-bold bg-gradient-to-r from-indigo-400 to-emerald-400 bg-clip-text text-transparent truncate">
-                FastAccounts
+                UAN Accounts
               </span>
               <span className="text-[10px] uppercase font-semibold tracking-wider text-emerald-400 border border-emerald-400/40 px-1 rounded">
-                Clone
+                ERP
               </span>
             </div>
           ) : (
-            <span className="text-xl font-bold mx-auto text-indigo-400">FA</span>
+            <span className="text-xl font-bold mx-auto text-indigo-400">UA</span>
           )}
           <button 
             onClick={() => setCollapsed(!collapsed)}

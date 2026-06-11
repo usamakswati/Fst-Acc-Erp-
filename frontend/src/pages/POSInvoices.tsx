@@ -318,7 +318,7 @@ export default function POSInvoices({ currency }: { currency: string }) {
 
             {/* Receipt headers */}
             <div className="text-center space-y-1">
-              <h2 className="text-lg font-bold tracking-tight text-slate-900">FASTACCOUNTS ERP</h2>
+              <h2 className="text-lg font-bold tracking-tight text-slate-900">UAN ACCOUNTS ERP</h2>
               <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Point of Sale Transaction</p>
               <div className="w-full border-t border-dashed border-slate-300 pt-2 text-[10px] text-slate-500 flex justify-between">
                 <span>Receipt: <strong>{createdInvoice.invoiceNumber}</strong></span>

@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "FastAccounts Clone ERP Backend",
+  "description": "UAN Accounts ERP Backend",
   "main": "src/index.ts",
   "scripts": {
     "dev": "nodemon src/index.ts",

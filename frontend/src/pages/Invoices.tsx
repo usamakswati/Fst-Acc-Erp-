@@ -674,7 +674,7 @@ export default function Invoices({ currency, taxRate, tenant }: InvoicesProps) {
                     />
                     <p className="font-bold text-slate-800">FBR INVOICE ID: {selectedInvoice.fbrInvoiceId}</p>
                     <p className="mt-1 font-semibold text-slate-600">Scan this QR Code using FBR Tax Asaan Mobile App for validation.</p>
-                    <p className="text-[8px] text-slate-400 mt-2 font-mono">POWERED BY ACME ENTERPRISE FASTACCOUNTS POS CONNECTOR</p>
+                    <p className="text-[8px] text-slate-400 mt-2 font-mono">POWERED BY ACME ENTERPRISE UAN ACCOUNTS POS CONNECTOR</p>
                   </div>
                 )}
               </div>

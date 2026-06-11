@@ -73,7 +73,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 // Start Express server
 app.listen(PORT, () => {
   console.log(`=================================================`);
-  console.log(`  FastAccounts SaaS ERP Backend Running!        `);
+  console.log(`  UAN Accounts SaaS ERP Backend Running!        `);
   console.log(`  Port: ${PORT}                                  `);
   console.log(`  Mode: ${process.env.NODE_ENV || 'development'} `);
   console.log(`=================================================`);
