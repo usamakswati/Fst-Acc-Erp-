@@ -24,6 +24,7 @@ import paymentsRouter from './routes/payments';
 import vendorChequesRouter from './routes/vendorCheques';
 import suppliersRouter from './routes/suppliers';
 import reportsRouter from './routes/reports';
+import superadminRouter from './routes/superadmin';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -56,6 +57,7 @@ app.use('/api/payments', paymentsRouter);
 app.use('/api/vendor-cheques', vendorChequesRouter);
 app.use('/api/suppliers', suppliersRouter);
 app.use('/api/reports', reportsRouter);
+app.use('/api/superadmin', superadminRouter);
 
 // Basic health check route
 app.get('/health', (req: Request, res: Response) => {
@@ -73,7 +75,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 // Start Express server
 app.listen(PORT, () => {
   console.log(`=================================================`);
-  console.log(`  UAN Accounts SaaS ERP Backend Running!        `);
+  console.log(`  Buraq Cloud SaaS ERP Backend Running!          `);
   console.log(`  Port: ${PORT}                                  `);
   console.log(`  Mode: ${process.env.NODE_ENV || 'development'} `);
   console.log(`=================================================`);

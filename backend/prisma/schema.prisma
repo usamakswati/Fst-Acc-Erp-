@@ -16,6 +16,7 @@ model Tenant {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   users           User[]
+  subscription    TenantSubscription?
   accounts        Account[]
   contacts        Contact[]
   products        Product[]
@@ -484,6 +485,40 @@ model StockTransfer {
   updatedAt      DateTime @updatedAt
 
   @@unique([tenantId, transferNumber])
+}
+
+model SuperUser {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model GlobalAuditLog {
+  id          String   @id @default(uuid())
+  superUserId String
+  action      String
+  details     String
+  timestamp   DateTime @default(now())
+}
+
+model TenantSubscription {
+  id             String   @id @default(uuid())
+  tenantId       String   @unique
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  status         String   @default("ACTIVE") // ACTIVE, SUSPENDED, TRIAL, EXPIRED
+  startDate      DateTime @default(now())
+  endDate        DateTime
+  moduleAccounts      Boolean @default(true)
+  moduleManufacturing Boolean @default(true)
+  moduleInventory     Boolean @default(true)
+  moduleHR            Boolean @default(false)
+  moduleCRM           Boolean @default(false)
+  moduleSales         Boolean @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 

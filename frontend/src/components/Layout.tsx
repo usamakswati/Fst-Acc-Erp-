@@ -95,23 +95,28 @@ export default function Layout({
 
       {/* Sidebar Container */}
       <aside 
-        className={`relative z-10 flex flex-col bg-brand-950/80 border-r border-brand-800/40 backdrop-blur-md transition-all duration-300 ${
+        className={`relative z-10 flex flex-col h-screen bg-brand-950/80 border-r border-brand-800/40 backdrop-blur-md transition-all duration-300 ${
           collapsed ? 'w-20' : 'w-64'
         }`}
       >
         {/* Sidebar Header */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-brand-800/40">
           {!collapsed ? (
-            <div className="flex items-center gap-2 overflow-hidden">
-              <span className="text-xl font-bold bg-gradient-to-r from-indigo-400 to-emerald-400 bg-clip-text text-transparent truncate">
-                UAN Accounts
-              </span>
-              <span className="text-[10px] uppercase font-semibold tracking-wider text-emerald-400 border border-emerald-400/40 px-1 rounded">
-                ERP
-              </span>
+            <div className="flex items-center gap-2.5 overflow-hidden">
+              <img src="/logo.png" className="w-8 h-8 object-contain shrink-0" alt="Buraq Cloud Logo" />
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-bold tracking-tight bg-gradient-to-r from-indigo-400 to-emerald-400 bg-clip-text text-transparent truncate uppercase">
+                  Buraq Cloud
+                </span>
+                <span className="text-[9px] font-semibold tracking-wider text-indigo-400 border border-indigo-400/40 px-1 rounded self-start mt-0.5 uppercase leading-none">
+                  ERP
+                </span>
+              </div>
             </div>
           ) : (
-            <span className="text-xl font-bold mx-auto text-indigo-400">UA</span>
+            <div className="mx-auto">
+              <img src="/logo.png" className="w-7 h-7 object-contain" alt="Buraq Cloud Logo" />
+            </div>
           )}
           <button 
             onClick={() => setCollapsed(!collapsed)}
@@ -216,6 +221,7 @@ export default function Layout({
             );
           })}
         </nav>
+
 
         {/* User Card & Logout */}
         <div className="p-4 border-t border-brand-800/40 bg-brand-950/40">

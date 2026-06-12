@@ -134,6 +134,23 @@ export const api = {
     return handleResponse(res);
   },
 
+  async updateInvoice(id: string, invoice: any) {
+    const res = await fetch(`/api/invoices/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(invoice),
+    });
+    return handleResponse(res);
+  },
+
+  async deleteInvoice(id: string) {
+    const res = await fetch(`/api/invoices/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    return handleResponse(res);
+  },
+
   async approveInvoice(id: string) {
     const res = await fetch(`/api/invoices/${id}/approve`, {
       method: 'POST',
@@ -586,5 +603,81 @@ export const api = {
       });
       return handleResponse(res);
     }
+  },
+
+  // SuperAdmin Panel API Actions
+  async superAdminLogin(credentials: any) {
+    const res = await fetch(`/api/superadmin/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(credentials),
+    });
+    const data = await handleResponse(res);
+    if (data.token) {
+      localStorage.setItem('erp_token', data.token);
+    }
+    return data;
+  },
+
+  async getSuperAdminTenants() {
+    const res = await fetch(`/api/superadmin/tenants`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  async provisionTenant(tenantData: any) {
+    const res = await fetch(`/api/superadmin/tenants`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(tenantData),
+    });
+    return handleResponse(res);
+  },
+
+  async updateTenantStatus(id: string, statusData: { status: string; endDate?: string }) {
+    const res = await fetch(`/api/superadmin/tenants/${id}/status`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(statusData),
+    });
+    return handleResponse(res);
+  },
+
+  async updateTenantModules(id: string, moduleData: any) {
+    const res = await fetch(`/api/superadmin/tenants/${id}/modules`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(moduleData),
+    });
+    return handleResponse(res);
+  },
+
+  async impersonateTenant(id: string) {
+    const res = await fetch(`/api/superadmin/tenants/${id}/impersonate`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    const data = await handleResponse(res);
+    if (data.token) {
+      localStorage.setItem('erp_token', data.token);
+    }
+    return data;
+  },
+
+  async getGlobalAuditLogs() {
+    const res = await fetch(`/api/superadmin/logs`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  async getSystemMetrics() {
+    const res = await fetch(`/api/superadmin/metrics`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(res);
   }
 };

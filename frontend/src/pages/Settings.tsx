@@ -21,7 +21,7 @@ interface SettingsProps {
 }
 
 export default function Settings({ tenant, setTenant, currency }: SettingsProps) {
-  const [activeTab, setActiveTab] = useState<'general' | 'invoice'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'invoice' | 'preferences'>('general');
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -42,6 +42,43 @@ export default function Settings({ tenant, setTenant, currency }: SettingsProps)
   const [logoText, setLogoText] = useState(tenant?.name || 'Acme Enterprise Corp');
   const [termsAndConditions, setTermsAndConditions] = useState('Payment is due within 30 days of invoice issue date. Overdue invoices are subject to 1.5% interest per month.');
   const [footerNote, setFooterNote] = useState('Thank you for choosing us! We appreciate your business.');
+
+  // 3. ERP Preferences & SMTP States
+  const [costingMethod, setCostingMethod] = useState<'FIFO' | 'WEIGHTED_AVERAGE'>('FIFO');
+  const [financialYearStart, setFinancialYearStart] = useState<string>('July');
+  const [transactionLockDate, setTransactionLockDate] = useState<string>('');
+  
+  const [posDefaultCashAccountId, setPosDefaultCashAccountId] = useState<string>('');
+  const [posDefaultCustomerId, setPosDefaultCustomerId] = useState<string>('');
+  const [posPrintFormat, setPosPrintFormat] = useState<'58mm' | '80mm' | 'A4'>('80mm');
+  
+  const [smtpHost, setSmtpHost] = useState<string>('smtp.mailtrap.io');
+  const [smtpPort, setSmtpPort] = useState<string>('2525');
+  const [smtpUser, setSmtpUser] = useState<string>('');
+  const [smtpPassword, setSmtpPassword] = useState<string>('');
+  const [smtpSenderName, setSmtpSenderName] = useState<string>('Buraq Cloud Billing');
+
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<any[]>([]);
+
+  // Load preferences, metadata on mount
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [coaData, contactsData] = await Promise.all([
+          api.getCoA(),
+          api.getInvoiceContacts(),
+        ]);
+        setAccounts(coaData);
+        setContacts(contactsData.filter((c: any) => c.type === 'CUSTOMER' || c.type === 'BOTH'));
+      } catch (err) {
+        console.error('Error loading settings metadata:', err);
+      }
+    }
+    if (tenant) {
+      loadData();
+    }
+  }, [tenant]);
 
   // Load settings from localStorage and tenant details on mount
   useEffect(() => {
@@ -67,6 +104,18 @@ export default function Settings({ tenant, setTenant, currency }: SettingsProps)
           setLogoText(parsed.logoText || tenant.name);
           setTermsAndConditions(parsed.termsAndConditions || 'Payment is due within 30 days of invoice issue date. Overdue invoices are subject to 1.5% interest per month.');
           setFooterNote(parsed.footerNote || 'Thank you for choosing us! We appreciate your business.');
+
+          setCostingMethod(parsed.costingMethod || 'FIFO');
+          setFinancialYearStart(parsed.financialYearStart || 'July');
+          setTransactionLockDate(parsed.transactionLockDate || '');
+          setPosDefaultCashAccountId(parsed.posDefaultCashAccountId || '');
+          setPosDefaultCustomerId(parsed.posDefaultCustomerId || '');
+          setPosPrintFormat(parsed.posPrintFormat || '80mm');
+          setSmtpHost(parsed.smtpHost || 'smtp.mailtrap.io');
+          setSmtpPort(parsed.smtpPort || '2525');
+          setSmtpUser(parsed.smtpUser || '');
+          setSmtpPassword(parsed.smtpPassword || '');
+          setSmtpSenderName(parsed.smtpSenderName || 'Buraq Cloud Billing');
         }
       } catch (err) {
         console.error('Error loading settings from local storage:', err);
@@ -141,6 +190,40 @@ export default function Settings({ tenant, setTenant, currency }: SettingsProps)
     }
   };
 
+  const handleSavePreferences = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    try {
+      const localKey = `fastaccounts_settings_${tenant.id}`;
+      const existingSettings = JSON.parse(localStorage.getItem(localKey) || '{}');
+      const newSettings = {
+        ...existingSettings,
+        costingMethod,
+        financialYearStart,
+        transactionLockDate,
+        posDefaultCashAccountId,
+        posDefaultCustomerId,
+        posPrintFormat,
+        smtpHost,
+        smtpPort,
+        smtpUser,
+        smtpPassword,
+        smtpSenderName,
+      };
+      localStorage.setItem(localKey, JSON.stringify(newSettings));
+      
+      setSuccessMsg('ERP Preferences & SMTP configuration saved successfully!');
+      setTimeout(() => setSuccessMsg(''), 4000);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to save preferences');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -190,6 +273,16 @@ export default function Settings({ tenant, setTenant, currency }: SettingsProps)
           }`}
         >
           <Palette size={16} /> Invoice Template Designer
+        </button>
+        <button
+          onClick={() => setActiveTab('preferences')}
+          className={`px-4 py-2.5 font-semibold text-sm border-b-2 transition-all flex items-center gap-2 ${
+            activeTab === 'preferences'
+              ? 'border-indigo-500 text-indigo-450 bg-indigo-500/5'
+              : 'border-transparent text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <SettingsIcon size={16} /> ERP Preferences &amp; SMTP
         </button>
       </div>
 
@@ -630,6 +723,203 @@ export default function Settings({ tenant, setTenant, currency }: SettingsProps)
           </div>
 
         </div>
+      )}
+
+      {/* TAB CONTENT: ERP PREFERENCES & SMTP */}
+      {activeTab === 'preferences' && (
+        <form onSubmit={handleSavePreferences} className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* ERP Preferences Card */}
+            <div className="glass-panel p-6 space-y-4">
+              <h3 className="text-md font-bold text-slate-200 border-b border-brand-850 pb-2 flex items-center gap-2">
+                <SettingsIcon size={18} className="text-indigo-400" />
+                <span>ERP Preferences</span>
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5 text-xs">
+                  <label className="text-slate-400 font-semibold block uppercase">Inventory Valuation Method</label>
+                  <select
+                    value={costingMethod}
+                    onChange={(e) => setCostingMethod(e.target.value as any)}
+                    className="w-full bg-slate-900 border border-brand-800 text-slate-100 rounded p-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  >
+                    <option value="FIFO">First-In First-Out (FIFO)</option>
+                    <option value="WEIGHTED_AVERAGE">Weighted Average (AVCO)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5 text-xs">
+                  <label className="text-slate-400 font-semibold block uppercase">Financial Year Start Month</label>
+                  <select
+                    value={financialYearStart}
+                    onChange={(e) => setFinancialYearStart(e.target.value)}
+                    className="w-full bg-slate-900 border border-brand-800 text-slate-100 rounded p-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  >
+                    <option value="January">January</option>
+                    <option value="July">July (Standard Pakistan Fiscal)</option>
+                    <option value="April">April</option>
+                    <option value="October">October</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 text-xs">
+                <label className="text-slate-400 font-semibold block uppercase">Lock Transactions Prior To</label>
+                <input
+                  type="date"
+                  value={transactionLockDate}
+                  onChange={(e) => setTransactionLockDate(e.target.value)}
+                  className="w-full bg-slate-900 border border-brand-800 text-slate-100 rounded p-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-mono"
+                />
+                <span className="text-[10px] text-slate-500 mt-1 block">Prevents backdating transactions prior to this lock date.</span>
+              </div>
+
+              {/* POS Defaults Section */}
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wide pt-2 border-t border-brand-850">
+                🏪 POS Checkout Defaults
+              </h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5 text-xs">
+                  <label className="text-slate-400 font-semibold block uppercase">Default Cash Account</label>
+                  <select
+                    value={posDefaultCashAccountId}
+                    onChange={(e) => setPosDefaultCashAccountId(e.target.value)}
+                    className="w-full bg-slate-900 border border-brand-800 text-slate-100 rounded p-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  >
+                    <option value="">-- Choose Account --</option>
+                    {accounts
+                      .filter((a) => a.code === '10100' || a.code === '10200')
+                      .map((a) => (
+                        <option key={a.id} value={a.id}>
+                          [{a.code}] {a.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5 text-xs">
+                  <label className="text-slate-400 font-semibold block uppercase">Default POS Customer</label>
+                  <select
+                    value={posDefaultCustomerId}
+                    onChange={(e) => setPosDefaultCustomerId(e.target.value)}
+                    className="w-full bg-slate-900 border border-brand-800 text-slate-100 rounded p-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  >
+                    <option value="">-- Choose Customer --</option>
+                    {contacts.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 text-xs max-w-sm">
+                <label className="text-slate-400 font-semibold block uppercase">POS Receipt Print Format</label>
+                <select
+                  value={posPrintFormat}
+                  onChange={(e) => setPosPrintFormat(e.target.value as any)}
+                  className="w-full bg-slate-900 border border-brand-800 text-slate-100 rounded p-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                >
+                  <option value="58mm">58mm Thermal Receipt</option>
+                  <option value="80mm">80mm Thermal Receipt (Standard)</option>
+                  <option value="A4">A4 Full Sheet PDF</option>
+                </select>
+              </div>
+            </div>
+
+            {/* SMTP Configuration Card */}
+            <div className="glass-panel p-6 space-y-4">
+              <h3 className="text-md font-bold text-slate-200 border-b border-brand-850 pb-2 flex items-center gap-2">
+                <Printer size={18} className="text-indigo-400" />
+                <span>SMTP E-Notification Configuration</span>
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5 text-xs md:col-span-2">
+                  <label className="text-slate-400 font-semibold block uppercase">SMTP Host Server</label>
+                  <input
+                    type="text"
+                    value={smtpHost}
+                    onChange={(e) => setSmtpHost(e.target.value)}
+                    className="w-full bg-slate-900 border border-brand-800 text-slate-100 rounded p-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    placeholder="e.g. smtp.gmail.com"
+                  />
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  <label className="text-slate-400 font-semibold block uppercase">SMTP Port</label>
+                  <input
+                    type="text"
+                    value={smtpPort}
+                    onChange={(e) => setSmtpPort(e.target.value)}
+                    className="w-full bg-slate-900 border border-brand-800 text-slate-100 rounded p-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-mono"
+                    placeholder="e.g. 587"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5 text-xs">
+                  <label className="text-slate-400 font-semibold block uppercase">SMTP Username / Email</label>
+                  <input
+                    type="text"
+                    value={smtpUser}
+                    onChange={(e) => setSmtpUser(e.target.value)}
+                    className="w-full bg-slate-900 border border-brand-800 text-slate-100 rounded p-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    placeholder="billing@yourdomain.com"
+                  />
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  <label className="text-slate-400 font-semibold block uppercase">SMTP Secure Password</label>
+                  <input
+                    type="password"
+                    value={smtpPassword}
+                    onChange={(e) => setSmtpPassword(e.target.value)}
+                    className="w-full bg-slate-900 border border-brand-800 text-slate-100 rounded p-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    placeholder="••••••••••••"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5 text-xs">
+                <label className="text-slate-400 font-semibold block uppercase">Sender Display Name</label>
+                <input
+                  type="text"
+                  value={smtpSenderName}
+                  onChange={(e) => setSmtpSenderName(e.target.value)}
+                  className="w-full bg-slate-900 border border-brand-800 text-slate-100 rounded p-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  placeholder="e.g. Buraq Cloud Billing"
+                />
+              </div>
+
+              <div className="bg-brand-900/10 border border-brand-800/30 rounded-lg p-3 text-[11px] text-slate-400 space-y-1 leading-normal">
+                <span className="font-bold text-slate-200 block mb-1">💡 Automated Notifications</span>
+                <p>Configuring SMTP credentials enables automatic email notifications with tax invoice links (PDFs) to customers upon ledger approvals and payment clearances.</p>
+              </div>
+            </div>
+
+          </div>
+
+          <div className="pt-2 flex justify-end">
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary font-bold px-6"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="animate-spin" size={16} />
+                  <span>Saving Preferences...</span>
+                </>
+              ) : (
+                <span>Save ERP Preferences</span>
+              )}
+            </button>
+          </div>
+        </form>
       )}
     </div>
   );

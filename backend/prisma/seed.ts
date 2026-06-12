@@ -6,6 +6,26 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding database...');
 
+  // Seeding default Super Admin User
+  const superadminEmail = 'superadmin@buraq.cloud';
+  let superuser = await prisma.superUser.findUnique({
+    where: { email: superadminEmail },
+  });
+
+  if (!superuser) {
+    const passwordHash = bcrypt.hashSync('superadmin123', 10);
+    superuser = await prisma.superUser.create({
+      data: {
+        email: superadminEmail,
+        passwordHash,
+        name: 'Master Super Admin',
+      },
+    });
+    console.log(`Created default SuperAdmin: ${superuser.email}`);
+  } else {
+    console.log(`SuperAdmin already exists: ${superuser.email}`);
+  }
+
   // 1. Create Tenant
   let tenant = await prisma.tenant.findFirst({
     where: { name: 'Acme Enterprise Corp' },
@@ -18,6 +38,16 @@ async function main() {
         subscriptionTier: 'ENTERPRISE',
         currency: 'PKR',
         taxRate: 18.0, // 18% standard tax
+        subscription: {
+          create: {
+            status: 'ACTIVE',
+            endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
+            moduleAccounts: true,
+            moduleManufacturing: true,
+            moduleInventory: true,
+            moduleSales: true,
+          }
+        }
       },
     });
     console.log(`Created tenant: ${tenant.name} (${tenant.id})`);
@@ -31,6 +61,25 @@ async function main() {
       },
     });
     console.log(`Updated existing tenant: ${tenant.name} to PKR / 18% GST`);
+
+    // Ensure existing tenant has a subscription
+    const existingSub = await prisma.tenantSubscription.findUnique({
+      where: { tenantId: tenant.id }
+    });
+    if (!existingSub) {
+      await prisma.tenantSubscription.create({
+        data: {
+          tenantId: tenant.id,
+          status: 'ACTIVE',
+          endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          moduleAccounts: true,
+          moduleManufacturing: true,
+          moduleInventory: true,
+          moduleSales: true,
+        }
+      });
+      console.log(`Created default subscription for existing tenant: ${tenant.name}`);
+    }
   }
 
   // 2. Create Admin User

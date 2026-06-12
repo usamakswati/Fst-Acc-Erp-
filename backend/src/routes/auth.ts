@@ -142,24 +142,43 @@ router.get('/me', authenticateJWT, async (req: AuthenticatedRequest, res) => {
   }
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      include: { tenant: true },
-    });
+    let user: any = null;
+    let tenant: any = null;
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+    if (req.user.role === 'SUPERADMIN') {
+      const superuser = await prisma.superUser.findUnique({
+        where: { id: req.user.id },
+      });
+      if (superuser) {
+        user = {
+          id: superuser.id,
+          email: superuser.email,
+          name: superuser.name,
+          role: 'SUPERADMIN',
+        };
+        tenant = { id: 'MASTER', name: 'Buraq Cloud Core Services', currency: 'USD', taxRate: 0 };
+      }
+    } else {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        include: { tenant: true },
+      });
+      if (dbUser) {
+        user = {
+          id: dbUser.id,
+          email: dbUser.email,
+          name: dbUser.name,
+          role: dbUser.role,
+        };
+        tenant = dbUser.tenant;
+      }
     }
 
-    res.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      },
-      tenant: user.tenant,
-    });
+    if (!user) {
+      return res.status(404).json({ error: 'User profile not found' });
+    }
+
+    res.json({ user, tenant });
   } catch (error) {
     res.status(500).json({ error: 'Error fetching user profile' });
   }

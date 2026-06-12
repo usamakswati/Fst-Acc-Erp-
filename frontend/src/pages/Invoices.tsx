@@ -13,7 +13,9 @@ import {
   ShieldCheck,
   Printer,
   QrCode,
-  UserPlus
+  UserPlus,
+  Edit,
+  Trash2
 } from 'lucide-react';
 
 interface InvoicesProps {
@@ -52,6 +54,12 @@ export default function Invoices({ currency, taxRate, tenant }: InvoicesProps) {
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+
+  // Edit / Delete states
+  const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [pendingInvoice, setPendingInvoice] = useState<any | null>(null);
+  const [pendingAction, setPendingAction] = useState<'edit' | 'delete' | null>(null);
 
   // Invoice Form states
   const [contactId, setContactId] = useState('');
@@ -170,6 +178,71 @@ export default function Invoices({ currency, taxRate, tenant }: InvoicesProps) {
     loadData();
   }, []);
 
+  const handleEditClick = async (invoice: any) => {
+    try {
+      setLoading(true);
+      const detail = await api.getInvoice(invoice.id);
+      
+      if (detail.status === 'APPROVED' || detail.status === 'PAID') {
+        setPendingInvoice(detail);
+        setPendingAction('edit');
+        setShowWarningModal(true);
+      } else {
+        startEditing(detail);
+      }
+    } catch (error) {
+      console.error('Error fetching invoice details for edit:', error);
+      setErrorMsg('Failed to fetch invoice details.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startEditing = (invoice: any) => {
+    setEditingInvoiceId(invoice.id);
+    setContactId(invoice.contactId);
+    setInvoiceNumber(invoice.invoiceNumber);
+    setDate(new Date(invoice.date).toISOString().substring(0, 10));
+    setDueDate(new Date(invoice.dueDate).toISOString().substring(0, 10));
+    setLines(invoice.lines.map((l: any) => ({
+      productId: l.productId,
+      sku: l.product.sku,
+      name: l.product.name,
+      quantity: l.quantity,
+      unitPrice: l.unitPrice,
+      discountPercent: l.discountPercent,
+      taxPercent: l.taxPercent,
+      lineTotal: l.lineTotal,
+    })));
+    setIsCreating(true);
+  };
+
+  const handleDeleteClick = (invoice: any) => {
+    setPendingInvoice(invoice);
+    setPendingAction('delete');
+    setShowWarningModal(true);
+  };
+
+  const executeDelete = async (id: string) => {
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      setLoading(true);
+      await api.deleteInvoice(id);
+      setSuccessMsg('Invoice successfully deleted and ledger postings reversed.');
+      await loadData();
+      setSelectedInvoice(null);
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (error: any) {
+      setErrorMsg(error.message || 'Failed to delete invoice');
+    } finally {
+      setLoading(false);
+      setShowWarningModal(false);
+      setPendingInvoice(null);
+      setPendingAction(null);
+    }
+  };
+
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -186,26 +259,34 @@ export default function Invoices({ currency, taxRate, tenant }: InvoicesProps) {
       return;
     }
 
-    try {
-      const created = await api.createInvoice({
-        invoiceNumber,
-        contactId,
-        date,
-        dueDate,
-        lines: lines.map((l) => ({
-          productId: l.productId,
-          quantity: l.quantity,
-          unitPrice: l.unitPrice,
-          discountPercent: l.discountPercent,
-          taxPercent: l.taxPercent
-        }))
-      });
+    const payload = {
+      invoiceNumber,
+      contactId,
+      date,
+      dueDate,
+      lines: lines.map((l) => ({
+        productId: l.productId,
+        quantity: l.quantity,
+        unitPrice: l.unitPrice,
+        discountPercent: l.discountPercent,
+        taxPercent: l.taxPercent
+      }))
+    };
 
-      setSuccessMsg(`Invoice ${created.invoiceNumber} created as DRAFT successfully.`);
+    try {
+      if (editingInvoiceId) {
+        await api.updateInvoice(editingInvoiceId, payload);
+        setSuccessMsg(`Invoice ${invoiceNumber} updated successfully.`);
+      } else {
+        const created = await api.createInvoice(payload);
+        setSuccessMsg(`Invoice ${created.invoiceNumber} created as DRAFT successfully.`);
+      }
+      
       await loadData();
       
       // Reset form
       setContactId('');
+      setEditingInvoiceId(null);
       setLines([{ productId: '', sku: '', name: '', quantity: 1, unitPrice: 0.0, discountPercent: 0.0, taxPercent: taxRate, lineTotal: 0.0 }]);
       
       setTimeout(() => {
@@ -213,7 +294,7 @@ export default function Invoices({ currency, taxRate, tenant }: InvoicesProps) {
         setSuccessMsg('');
       }, 1500);
     } catch (error: any) {
-      setErrorMsg(error.message || 'Error creating sales invoice');
+      setErrorMsg(error.message || 'Error saving sales invoice');
     }
   };
 
@@ -300,12 +381,14 @@ export default function Invoices({ currency, taxRate, tenant }: InvoicesProps) {
           <div className="flex items-center gap-3">
             <button 
               type="button" 
-              onClick={() => setIsCreating(false)}
+              onClick={() => { setIsCreating(false); setEditingInvoiceId(null); }}
               className="p-1 rounded-lg hover:bg-brand-900/50 text-slate-400 hover:text-slate-200 transition-colors"
             >
               <ArrowLeft size={18} />
             </button>
-            <h3 className="text-base font-bold text-slate-200">Invoice Draft Form</h3>
+            <h3 className="text-base font-bold text-slate-200">
+              {editingInvoiceId ? `Edit Invoice: ${invoiceNumber}` : 'Invoice Draft Form'}
+            </h3>
           </div>
 
           <div className="glass-panel p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -379,7 +462,7 @@ export default function Invoices({ currency, taxRate, tenant }: InvoicesProps) {
           <div className="flex justify-end gap-3">
             <button 
               type="button" 
-              onClick={() => setIsCreating(false)} 
+              onClick={() => { setIsCreating(false); setEditingInvoiceId(null); }} 
               className="btn-secondary"
             >
               Cancel
@@ -388,7 +471,7 @@ export default function Invoices({ currency, taxRate, tenant }: InvoicesProps) {
               type="submit" 
               className="btn-primary px-6"
             >
-              Save Invoice Draft
+              {editingInvoiceId ? 'Save Changes' : 'Save Invoice Draft'}
             </button>
           </div>
         </form>
@@ -674,7 +757,7 @@ export default function Invoices({ currency, taxRate, tenant }: InvoicesProps) {
                     />
                     <p className="font-bold text-slate-800">FBR INVOICE ID: {selectedInvoice.fbrInvoiceId}</p>
                     <p className="mt-1 font-semibold text-slate-600">Scan this QR Code using FBR Tax Asaan Mobile App for validation.</p>
-                    <p className="text-[8px] text-slate-400 mt-2 font-mono">POWERED BY ACME ENTERPRISE UAN ACCOUNTS POS CONNECTOR</p>
+                    <p className="text-[8px] text-slate-400 mt-2 font-mono">POWERED BY ACME ENTERPRISE BURAQ CLOUD POS CONNECTOR</p>
                   </div>
                 )}
               </div>
@@ -860,7 +943,7 @@ export default function Invoices({ currency, taxRate, tenant }: InvoicesProps) {
                     <th className="px-4 py-3 font-semibold w-24 text-right">Grand Total</th>
                     <th className="px-4 py-3 font-semibold w-28 text-center">GL Posting</th>
                     <th className="px-4 py-3 font-semibold w-32 text-center">e-Invoice Status</th>
-                    <th className="px-4 py-3 font-semibold w-20 text-center">Action</th>
+                    <th className="px-4 py-3 font-semibold w-28 text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-brand-900/10">
@@ -902,13 +985,29 @@ export default function Invoices({ currency, taxRate, tenant }: InvoicesProps) {
                         </span>
                       </td>
                       <td className="px-4 py-3.5 text-center">
-                        <button
-                          onClick={() => viewDetails(inv.id)}
-                          className="p-1 hover:bg-indigo-500/10 text-indigo-400 hover:text-indigo-300 rounded transition-all"
-                          title="View Details"
-                        >
-                          <Eye size={16} />
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => viewDetails(inv.id)}
+                            className="p-1.5 hover:bg-indigo-500/10 text-indigo-400 hover:text-indigo-300 rounded transition-all"
+                            title="View Details"
+                          >
+                            <Eye size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleEditClick(inv)}
+                            className="p-1.5 hover:bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 rounded transition-all"
+                            title="Edit Invoice"
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(inv)}
+                            className="p-1.5 hover:bg-rose-500/10 text-rose-400 hover:text-rose-300 rounded transition-all"
+                            title="Delete Invoice"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1018,6 +1117,76 @@ export default function Invoices({ currency, taxRate, tenant }: InvoicesProps) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* WARNING / CONFIRMATION MODAL FOR APPROVED INVOICE EDITS & DELETIONS */}
+      {showWarningModal && pendingInvoice && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-brand-800 rounded-xl p-6 w-full max-w-md space-y-6 shadow-premium">
+            <div className="flex items-center gap-3 text-amber-500">
+              <AlertCircle size={24} />
+              <h3 className="text-lg font-bold text-slate-200">
+                {pendingAction === 'delete' ? 'Confirm Deletion' : 'Warning: Invoice is Posted'}
+              </h3>
+            </div>
+            
+            <div className="space-y-3 text-sm text-slate-300">
+              <p>
+                You are performing a `{pendingAction === 'delete' ? 'DELETE' : 'EDIT'}` action on invoice{' '}
+                <strong className="text-indigo-400 font-mono">{pendingInvoice.invoiceNumber}</strong>.
+              </p>
+
+              {(pendingInvoice.status === 'APPROVED' || pendingInvoice.status === 'PAID') && (
+                <div className="bg-rose-500/10 border border-rose-500/25 p-3 rounded-lg text-rose-350 text-xs leading-relaxed space-y-1">
+                  <span className="font-bold uppercase block text-rose-400">⚠️ Financial Audit Impact</span>
+                  <p>
+                    This invoice is already **{pendingInvoice.status}** and posted to the General Ledger. 
+                    Proceeding will automatically **REVERSE** and delete the ledger postings and adjust product stock levels.
+                  </p>
+                </div>
+              )}
+
+              {pendingAction === 'delete' ? (
+                <p>Are you absolutely sure you want to permanently delete this invoice? This action cannot be undone.</p>
+              ) : (
+                <p>Are you sure you want to proceed and edit this invoice? The ledger entry will be re-posted upon saving changes.</p>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button 
+                type="button" 
+                onClick={() => {
+                  setShowWarningModal(false);
+                  setPendingInvoice(null);
+                  setPendingAction(null);
+                }} 
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                onClick={() => {
+                  if (pendingAction === 'delete') {
+                    executeDelete(pendingInvoice.id);
+                  } else {
+                    setShowWarningModal(false);
+                    startEditing(pendingInvoice);
+                    setPendingInvoice(null);
+                    setPendingAction(null);
+                  }
+                }}
+                className={`btn-primary font-bold px-4 py-2 ${
+                  pendingInvoice.status === 'APPROVED' || pendingInvoice.status === 'PAID' || pendingAction === 'delete'
+                    ? 'bg-rose-600 hover:bg-rose-500 border-rose-650'
+                    : ''
+                }`}
+              >
+                {pendingAction === 'delete' ? 'Yes, Delete Invoice' : 'Yes, Proceed to Edit'}
+              </button>
+            </div>
           </div>
         </div>
       )}

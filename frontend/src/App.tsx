@@ -27,6 +27,7 @@ import PurchaseOrders from './pages/PurchaseOrders';
 import Suppliers from './pages/Suppliers';
 import BankReconciliation from './pages/BankReconciliation';
 import Settings from './pages/Settings';
+import SuperAdmin from './pages/SuperAdmin';
 import { ShieldCheck, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function App() {
@@ -61,6 +62,9 @@ export default function App() {
         const response = await api.getMe();
         setUser(response.user);
         setTenant(response.tenant);
+        if (response.user && response.user.role === 'SUPERADMIN') {
+          setCurrentTab('superadmin');
+        }
       } catch (error) {
         console.error('Session expired', error);
         api.logout();
@@ -77,10 +81,20 @@ export default function App() {
     setAuthError('');
     setAuthLoading(true);
     try {
-      const data = await api.login({ email: loginEmail, passwordHash: loginPassword });
+      let data;
+      if (loginEmail.toLowerCase() === 'superadmin@buraq.cloud') {
+        data = await api.superAdminLogin({ email: loginEmail, password: loginPassword });
+      } else {
+        data = await api.login({ email: loginEmail, passwordHash: loginPassword });
+      }
       setToken(data.token);
       setUser(data.user);
       setTenant(data.tenant);
+      if (data.user.role === 'SUPERADMIN') {
+        setCurrentTab('superadmin');
+      } else {
+        setCurrentTab('dashboard');
+      }
     } catch (err: any) {
       setAuthError(err.message || 'Invalid email or password');
     } finally {
@@ -136,10 +150,10 @@ export default function App() {
         <div className="w-full max-w-md bg-brand-950/80 border border-brand-800/40 backdrop-blur-md rounded-2xl p-8 shadow-glass relative z-10 space-y-6">
           <div className="text-center space-y-2">
             <div className="inline-flex p-3 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20 mb-2">
-              <ShieldCheck size={28} />
+              <img src="/logo.png" className="w-10 h-10 object-contain shrink-0" alt="Buraq Cloud Logo" />
             </div>
             <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-indigo-400 to-emerald-400 bg-clip-text text-transparent">
-              UAN Accounts ERP
+              Buraq Cloud ERP
             </h2>
             <p className="text-xs text-slate-400 font-medium">Double-entry accounting, FIFO/Average costing engine, and RBAC security.</p>
           </div>
@@ -261,6 +275,10 @@ export default function App() {
         </div>
       </div>
     );
+  }
+
+  if (user && user.role === 'SUPERADMIN') {
+    return <SuperAdmin onLogout={handleLogout} />;
   }
 
   // Render Dashboard Layout wrapper when logged in

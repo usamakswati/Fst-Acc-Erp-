@@ -235,3 +235,48 @@ export async function getStockStatus(tenantId: string, productId: string, txClie
     totalValue: parseFloat(totalValue.toFixed(4)),
   };
 }
+
+/**
+ * Reverse stock outflow (restoring FIFO queue remainingQty values)
+ */
+export async function reverseStockOutflow(
+  tenantId: string,
+  productId: string,
+  quantityToRestore: number,
+  warehouse: string,
+  txClient: any
+): Promise<void> {
+  const db = txClient || prisma;
+
+  if (quantityToRestore <= 0) return;
+
+  // Find consumed inflows (positive transactions) in chronological order
+  const inflows = await db.stockTransaction.findMany({
+    where: {
+      tenantId,
+      productId,
+      warehouse,
+      quantity: { gt: 0 },
+    },
+    orderBy: [
+      { date: 'asc' },
+      { id: 'asc' },
+    ],
+  });
+
+  let remainingToRestore = quantityToRestore;
+  for (const inflow of inflows) {
+    if (remainingToRestore <= 0) break;
+
+    const maxRestorable = inflow.quantity - inflow.remainingQty;
+    if (maxRestorable > 0) {
+      const restoreQty = Math.min(maxRestorable, remainingToRestore);
+      await db.stockTransaction.update({
+        where: { id: inflow.id },
+        data: { remainingQty: inflow.remainingQty + restoreQty },
+      });
+      remainingToRestore -= restoreQty;
+    }
+  }
+}
+
